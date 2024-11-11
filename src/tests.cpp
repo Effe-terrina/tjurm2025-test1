@@ -1,5 +1,5 @@
 #include "tests.h"
-
+#include<iostream>
 // 练习1，实现库函数strlen
 int my_strlen(char *str) {
     /**
@@ -7,8 +7,14 @@ int my_strlen(char *str) {
      */
 
     // IMPLEMENT YOUR CODE HERE
-    return 0;
+    int length=0;
+    while(*str != '\0'){
+        length++;
+        str++;
+    }
+    return length;
 }
+
 
 
 // 练习2，实现库函数strcat
@@ -17,7 +23,15 @@ void my_strcat(char *str_1, char *str_2) {
      * 将字符串str_2拼接到str_1之后，我们保证str_1指向的内存空间足够用于添加str_2。
      * 注意结束符'\0'的处理。
      */
-
+     while (*str_1) {
+        str_1++;
+    }
+     while (*str_2) {
+        *str_1 = *str_2;
+        str_1++;
+        str_2++;
+    }
+     *str_1 = '\0';
     // IMPLEMENT YOUR CODE HERE
 }
 
@@ -29,7 +43,26 @@ char* my_strstr(char *s, char *p) {
      * 例如：
      * s = "123456", p = "34"，应该返回指向字符'3'的指针。
      */
-
+    if (*p == '\0') {
+        return s;
+    }
+    char *s_temp = s;
+    while (*s_temp != '\0') {
+        if (*s_temp == *p) {
+            // 检查s_temp和p是否匹配
+            char *s_temp2 = s_temp;
+            char *p_temp = p;
+            while (*p_temp != '\0' && *s_temp2 == *p_temp) {
+                s_temp2++;
+                p_temp++;
+            }
+            // 如果p已经全部匹配，则返回s_temp
+            if (*p_temp == '\0') {
+                return s_temp;
+            }
+        }
+        s_temp++;
+    }
     // IMPLEMENT YOUR CODE HERE
     return 0;
 }
@@ -94,7 +127,18 @@ void rgb2gray(float *in, float *out, int h, int w) {
      * (1) for循环的使用。
      * (2) 内存的访问。
      */
-
+    for (int i = 0; i < h; i++) {
+        for (int j = 0; j < w; j++) {
+            // 计算当前像素在彩色图片中的位置（每个像素由3个通道组成）
+            int index = (i * w + j) * 3;
+            // 读取当前像素的R、G、B值
+            float r = in[index];
+            float g = in[index + 1];
+            float b = in[index + 2];
+            // 计算灰度值
+            *out++ = 0.1140 * b + 0.5870 * g + 0.2989 * r;
+        }
+    }
     // IMPLEMENT YOUR CODE HERE
     // ...
 }
@@ -198,7 +242,40 @@ void resize(float *in, float *out, int h, int w, int c, float scale) {
 
     int new_h = h * scale, new_w = w * scale;
     // IMPLEMENT YOUR CODE HERE
+     for (int i = 0; i < new_h; i++) {
+        for (int j = 0; j < new_w; j++) {
+            // 计算在原图中对应的坐标
+            float x = j / scale;
+            float y = i / scale;
 
+            // 计算四个邻居点的坐标
+            int x1 = (int)x;
+            int y1 = (int)y;
+            int x2 = (x1 < w - 1) ? x1 + 1 : x1;
+            int y2 = (y1 < h - 1) ? y1 + 1 : y1;
+
+            // 计算四个邻居点的权重
+            float dx = x - x1;
+            float dy = y - y1;
+
+            // 计算四个邻居点的值
+            float p1 = in[(y1 * w + x1) * c];
+            float p2 = in[(y2 * w + x1) * c];
+            float p3 = in[(y1 * w + x2) * c];
+            float p4 = in[(y2 * w + x2) * c];
+
+            // 应用双线性插值公式
+            float q = (1 - dx) * (1 - dy) * p1 + dx * (1 - dy) * p2 + (1 - dx) * dy * p3 + dx * dy * p4;
+
+            // 将计算出的值写入输出数组
+            int index = (i * new_w + j) * c;
+            out[index] = q;
+            // 如果有多个通道，需要复制其他通道的值
+            for (int k = 1; k < c; k++) {
+                out[index + k] = in[(y1 * w + x1) * c + k];
+            }
+        }
+    }
 }
 
 
@@ -219,6 +296,33 @@ void hist_eq(float *in, int h, int w) {
      * (2) 灰度级个数为256，也就是{0, 1, 2, 3, ..., 255}
      * (3) 使用数组来实现灰度级 => 灰度级的映射
      */
-
+     // 1. 初始化直方图数组
+    int hist[256] = {0};
+    // 2. 计算直方图
+    for (int i = 0; i < h; i++) {
+        for (int j = 0; j < w; j++) {
+            int gray_level = (int)in[i * w + j];
+            hist[gray_level]++;
+        }
+    }
+    
+    // 3. 计算累积分布函数（CDF）
+    int cdf[256] = {0};
+    for (int i = 0; i < 256; i++) {
+        cdf[i] = cdf[i - 1] + hist[i];
+    }
+    
+    // 4. 归一化CDF
+    for (int i = 0; i < 256; i++) {
+        cdf[i] = (float)cdf[i] / (h * w) * 255;
+    }
+    
+    // 5. 映射原始灰度值到新的灰度值
+    for (int i = 0; i < h; i++) {
+        for (int j = 0; j < w; j++) {
+            int gray_level = (int)in[i * w + j];
+            in[i * w + j] = cdf[gray_level] / 255.0;
+        }
+    }
     // IMPLEMENT YOUR CODE HERE
 }
